@@ -207,19 +207,18 @@ local ResizeEnabled = false
 local normalSizes = {} -- store each player's original head size
 local UPDATE_INTERVAL = 0.15
 
--- FUNCTION TO RESIZE HEAD
+-- FUNCTION TO RESIZE HEAD SAFELY
 local function resizeHead(player, size)
     local char = player.Character
-    if char then
-        local head = char:FindFirstChild("Head")
-        if head then
-            local mesh = head:FindFirstChildOfClass("SpecialMesh")
-            if mesh then
-                mesh.Scale = size
-            else
-                head.Size = size
-            end
-        end
+    if not char then return end
+    local head = char:FindFirstChild("Head")
+    if not head then return end -- skip if headless
+
+    local mesh = head:FindFirstChildOfClass("SpecialMesh")
+    if mesh then
+        mesh.Scale = size
+    else
+        head.Size = size
     end
 end
 
@@ -227,13 +226,11 @@ end
 local function ensureNormalSize(player)
     if normalSizes[player] then return end
     local char = player.Character
-    if char then
-        local head = char:FindFirstChild("Head")
-        if head then
-            local mesh = head:FindFirstChildOfClass("SpecialMesh")
-            normalSizes[player] = mesh and mesh.Scale or head.Size
-        end
-    end
+    if not char then return end
+    local head = char:FindFirstChild("Head")
+    if not head then return end
+    local mesh = head:FindFirstChildOfClass("SpecialMesh")
+    normalSizes[player] = mesh and mesh.Scale or head.Size
 end
 
 -- MAIN LOOP
@@ -246,11 +243,7 @@ RunService.Heartbeat:Connect(function(dt)
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
             ensureNormalSize(player)
-            if ResizeEnabled then
-                resizeHead(player, HeadSize)
-            else
-                resizeHead(player, normalSizes[player])
-            end
+            resizeHead(player, ResizeEnabled and HeadSize or normalSizes[player] or Vector3.new(2,2,1))
         end
     end
 end)
